@@ -96,7 +96,8 @@ consumer logic.
 This design allows the database schema to define uniqueness while keeping the
 stream stateless.
 
-> [!NOTE] Baseline Performance
+> [!NOTE]  
+> **Baseline Performance**
 >
 > The reported throughput is achieved on a single-node setup without table
 > partitioning, compression tuning, or horizontal scaling. The goal is to
@@ -116,7 +117,8 @@ PRIMARY KEY (device_id, published_at, metric_name)
 This design prevents write contention on a single index page, enabling high
 concurrent insert rates.
 
-> [!WARNING] Primary Key Write Contention
+> [!WARNING]  
+> **Primary Key Write Contention**
 >
 > While the composite primary key enables idempotent upserts, it can become a
 > write bottleneck at higher concurrency levels due to index page contention.
@@ -132,7 +134,8 @@ concurrent insert rates.
 - Light (40)
 - Sound (50)
 
-> [!TIP] Why `metric_name` is a `smallint`
+> [!TIP]  
+> **Why `metric_name` is a `smallint`**
 >
 > `metric_name` was originally modeled as a PostgreSQL enum. It was later
 > changed to a `smallint` because the Kafka Connect JDBC sink does not reliably
@@ -172,7 +175,8 @@ maintenance_work_mem: 2GB
 checkpoint_completion_target: 0.9
 ```
 
-> [!IMPORTANT] Environment Assumptions
+> [!IMPORTANT]  
+> **Environment Assumptions**
 >
 > The provided PostgreSQL tuning values assume a development machine with ≥32 GB
 > RAM and fast local storage. For smaller environments, these values should be
@@ -378,7 +382,8 @@ Current throughput: **40-50k inserts/second** (baseline)
    TimescaleDB for native time-series partitioning, compression, and retention
    policies.
 
-> [!NOTE] Scope Boundary
+> [!NOTE]  
+> **Scope Boundary**
 >
 > This proof-of-concept intentionally targets plain PostgreSQL to establish a
 > clear performance baseline. Time-series extensions such as TimescaleDB are
