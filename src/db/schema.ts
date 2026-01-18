@@ -1,31 +1,25 @@
 import * as d from "drizzle-orm/pg-core";
 
 /**
- * Define the schema
- */
-export const schema = d.pgSchema("concept");
-
-/**
  * So I can use it with z.enum(...) somewhere else
  */
-export const metricNames = [
-  "temperature",
-  "humidity",
-  "pressure",
-  "co2",
-  "light",
-  "sound",
-] as const;
+export enum MetricName {
+  temperature = 0,
+  humidity = 10,
+  pressure = 20,
+  co2 = 30,
+  light = 40,
+  sound = 50,
+}
 
-/**
- * Define as enum to store less space
- */
-export const metricName = schema.enum("metric_name", metricNames);
+export const metricNames = Object.values(MetricName).filter(
+  (val) => typeof val === "number",
+);
 
 /**
  * Devices
  */
-export const devices = schema.table("devices", {
+export const devices = d.pgTable("devices", {
   id: d.uuid().primaryKey().defaultRandom(),
   label: d.text().notNull(),
   location: d.text(),
@@ -34,12 +28,12 @@ export const devices = schema.table("devices", {
 /**
  * Metrics - optimized for high-throughput ingestion
  */
-export const metrics = schema.table(
+export const metrics = d.pgTable(
   "metrics",
   {
     device_id: d.uuid().notNull(),
     published_at: d.timestamp().notNull(),
-    metric_name: metricName().notNull(),
+    metric_name: d.smallint().notNull(),
     value: d.doublePrecision().notNull(),
     tags: d.text().array().notNull().default([]),
     created_at: d.timestamp().defaultNow().notNull(),

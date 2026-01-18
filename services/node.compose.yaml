@@ -1,0 +1,41 @@
+x-healthcheck: &healthcheck
+  interval: 30s
+  timeout: 5s
+  retries: 15
+  start_period: 3s
+  start_interval: 1s
+
+services:
+  migrate:
+    build:
+      context: ${PWD}
+      target: migrate
+    restart: no
+    volumes:
+      - ${PWD}/.env:/app/.env:ro
+    command: [db:migrate]
+    networks:
+      postgres:
+    depends_on:
+      postgres:
+        condition: service_healthy
+  node:
+    build:
+      context: ${PWD}
+      target: producer
+    networks:
+      redpanda:
+        aliases:
+          - node.lokal
+    environment:
+      - DOCKER=true
+    volumes:
+      - ${PWD}/.env:/app/.env:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redpanda:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck
+      test: [CMD-SHELL, wget -q --spider http://localhost:3000/health]

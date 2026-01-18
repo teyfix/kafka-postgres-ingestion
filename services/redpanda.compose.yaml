@@ -10,6 +10,33 @@ volumes:
 
 networks:
   redpanda:
+  kafka_connect:
+
+configs:
+  create_connector:
+    name: create_connector
+    content: |-
+      {
+        "name": "metrics-postgres-sink",
+        "config": {
+          "auto.create": "false",
+          "auto.evolve": "false",
+          "batch.size": "2500",
+          "column.types": "tags=jsonb",
+          "connection.password": "${POSTGRES_PASSWORD}",
+          "connection.url": "jdbc:postgresql://pg.lokal:5432/postgres",
+          "connection.user": "${POSTGRES_USER}",
+          "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
+          "consumer.fetch.max.wait.ms": "100",
+          "consumer.fetch.min.bytes": "1048576",
+          "consumer.max.poll.records": "5000",
+          "insert.mode": "upsert",
+          "pk.fields": "device_id,metric_name,published_at",
+          "pk.mode": "record_key",
+          "tasks.max": "6",
+          "topics": "metrics"
+        }
+      }
 
 services:
   redpanda:
@@ -24,11 +51,11 @@ services:
       # Use the external addresses to connect to the Redpanda brokers'
       # from outside the Docker network.
       - --advertise-kafka-addr
-        internal://kafka.lokal:9092,external://localhost:19092
+        internal://kafka.lokal:9092,external://kafka.lokal:19092
       - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
       # Address the broker advertises to clients that connect to the HTTP Proxy.
       - --advertise-pandaproxy-addr
-        internal://kafka.lokal:8082,external://localhost:18082
+        internal://kafka.lokal:8082,external://kafka.lokal:18082
       - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
       # Redpanda brokers use the RPC API to communicate with each other internally.
       - --rpc-addr kafka.lokal:33145
@@ -46,8 +73,6 @@ services:
       - 18082
       - 19092
       - 9644
-    ports:
-      - 19092:19092
     networks:
       redpanda:
         aliases:
@@ -56,7 +81,7 @@ services:
       <<: *healthcheck
       test: [CMD-SHELL, curl -f http://localhost:9644/v1/status/ready]
 
-  redpanda-console:
+  console:
     image: redpandadata/console:v3.5.0
     entrypoint: /bin/sh
     command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
@@ -76,7 +101,7 @@ services:
     expose:
       - 8080
     ports:
-      - 9090:8080
+      - ${REDPANDA_CONSOLE_PORT:-9090}:8080
     networks:
       redpanda:
     healthcheck:
@@ -84,4 +109,70 @@ services:
       test: [CMD-SHELL, curl -f http://localhost:8080]
     depends_on:
       redpanda:
+        condition: service_healthy
+
+  connect:
+    build:
+      dockerfile_inline: |-
+        FROM confluentinc/cp-kafka-connect:7.6.0
+        RUN confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:latest
+    networks:
+      redpanda:
+      postgres:
+      kafka_connect:
+        aliases:
+          - connect.lokal
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: kafka.lokal:19092
+      CONNECT_REST_ADVERTISED_HOST_NAME: connect
+
+      CONNECT_GROUP_ID: metrics-connect-group
+
+      CONNECT_CONFIG_STORAGE_TOPIC: _connect_configs
+      CONNECT_OFFSET_STORAGE_TOPIC: _connect_offsets
+      CONNECT_STATUS_STORAGE_TOPIC: _connect_status
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "true"
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "true"
+
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
+
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      node:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck
+      test: [CMD-SHELL, curl -f http://localhost:8083]
+
+  connect_init:
+    build:
+      dockerfile_inline: |-
+        FROM alpine/curl:latest
+        RUN apk add --no-cache jq
+    restart: on-failure
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |-
+        
+        curl -fs -X POST http://connect.lokal:8083/connectors/ -H "Content-Type:application/json" -d @/tmp/create_connect ||
+          curl -fs -X PUT http://connect.lokal:8083/connectors/metrics-postgres-sink/config -H "Content-Type:application/json" -d "$(jq '.config' /tmp/create_connect)"
+    configs:
+      - source: create_connector
+        target: /tmp/create_connect
+    networks:
+      kafka_connect:
+    depends_on:
+      connect:
         condition: service_healthy

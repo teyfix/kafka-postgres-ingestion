@@ -1,4 +1,5 @@
 name: poc_ingest
 include:
+  - ${PWD}/services/node.compose.yaml
   - ${PWD}/services/postgres.compose.yaml
   - ${PWD}/services/redpanda.compose.yaml

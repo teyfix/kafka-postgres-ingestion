@@ -25,4 +25,18 @@ export const ProducerConfig = {
     .get("PRODUCER_PUBLISH_INTERVAL")
     .default("250")
     .asIntPositive(),
+
+  // Topic creation
+  TOPIC_PARTITIONS: env
+    .get("TOPIC_PARTITIONS_METRICS")
+    .default("6")
+    .asIntPositive(),
+  TOPIC_REPLICATION_FACTOR: env
+    .get("TOPIC_REPLICATION_FACTOR_METRICS")
+    .default("1")
+    .asIntPositive(),
+  TOPIC_RETENTION_MS: env
+    .get("TOPIC_RETENTION_METRICS")
+    .default("604800000")
+    .asIntPositive(),
 };
