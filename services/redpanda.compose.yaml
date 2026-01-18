@@ -115,7 +115,7 @@ services:
     build:
       dockerfile_inline: |-
         FROM confluentinc/cp-kafka-connect:7.6.0
-        RUN confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:latest
+        RUN confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:10.9.2
     networks:
       redpanda:
       postgres:
@@ -158,7 +158,7 @@ services:
   connect_init:
     build:
       dockerfile_inline: |-
-        FROM alpine/curl:latest
+        FROM alpine/curl:8.17.0
         RUN apk add --no-cache jq
     restart: on-failure
     entrypoint: /bin/sh
