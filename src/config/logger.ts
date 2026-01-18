@@ -30,8 +30,11 @@ function getTargets(): TransportTargetOptions[] {
   ];
 }
 
-export const appLogger = pino({
-  transport: {
-    targets: getTargets(),
+export const appLogger = pino(
+  {
+    transport: {
+      targets: getTargets(),
+    },
   },
-});
+  pino.destination(),
+);

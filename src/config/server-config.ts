@@ -1,13 +1,7 @@
-import z from "zod";
-import { loadConfig } from "./utils";
+import env from "env-var";
 
-export const ServerConfig = loadConfig(
-  z.object({
-    DOCKER: z.coerce.boolean(),
-    KAFKA_URL: z.string(),
-  }),
-  {
-    DOCKER: process.env.DOCKER,
-    KAFKA_URL: process.env.KAFKA_URL,
-  },
-);
+export const ServerConfig = {
+  DOCKER: env.get("DOCKER").required().default("false").asBoolStrict(),
+  KAFKA_URL: env.get("KAFKA_URL").required().asString(),
+  POSTGRES_URL: env.get("POSTGRES_URL").required().asUrlString(),
+};
