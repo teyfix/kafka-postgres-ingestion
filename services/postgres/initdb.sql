@@ -3,7 +3,6 @@ CREATE DATABASE "poc_ingest";
 
 -- Connect to the new database
 \c poc_ingest
-
 -- Create users if they don't exist (avoid errors on restart)
 DO $$
 BEGIN
@@ -22,18 +21,14 @@ GRANT ALL PRIVILEGES ON DATABASE "poc_ingest" TO "pgadmin";
 
 GRANT CONNECT ON DATABASE "poc_ingest" TO "nodejs";
 
--- Create your custom schema (from Drizzle)
-CREATE SCHEMA IF NOT EXISTS "concept";
-
 -- Grant schema permissions for public schema
 GRANT USAGE ON SCHEMA "public" TO "nodejs";
 
-GRANT
-SELECT
-,
-  INSERT,
-UPDATE,
-DELETE ON ALL TABLES IN SCHEMA "public" TO "nodejs";
+-- Grant create privileges on the database
+GRANT CREATE ON DATABASE "poc_ingest" TO "nodejs";
+
+GRANT USAGE, CREATE ON SCHEMA "concept" TO "nodejs";
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA "public" TO "nodejs";
 
 GRANT USAGE,
 SELECT

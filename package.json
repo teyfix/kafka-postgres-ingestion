@@ -5,6 +5,9 @@
   "module": "src/index.ts",
   "scripts": {
     "consume": "bun src/consumer/index.ts",
+    "db:gen": "drizzle-kit generate",
+    "db:drop": "drizzle-kit drop",
+    "db:migrate": "drizzle-kit migrate",
     "produce": "bun src/producer/index.ts"
   },
   "dependencies": {
