@@ -1,0 +1,4 @@
+name: poc_ingest
+include:
+  - ${PWD}/services/postgres.compose.yaml
+  - ${PWD}/services/redpanda.compose.yaml
